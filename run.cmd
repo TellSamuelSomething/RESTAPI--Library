@@ -1,4 +1,3 @@
 @echo off
-set JAVA_HOME=C:\Users\samue\.vscode\extensions\redhat.java-1.54.0-win32-x64\jre\21.0.10-win32-x86_64
-set PATH=%JAVA_HOME%\bin;%PATH%
-call mvnw.cmd spring-boot:run
+rem Starts the API on http://localhost:8080. Needs a JDK 17 or newer on PATH (or JAVA_HOME set).
+call "%~dp0mvnw.cmd" spring-boot:run

@@ -3,19 +3,21 @@ package com.library.api.service;
 import com.library.api.dto.AuthResponse;
 import com.library.api.dto.LoginRequest;
 import com.library.api.dto.RegisterRequest;
+import com.library.api.exception.UsernameTakenException;
 import com.library.api.model.User;
 import com.library.api.repository.UserRepository;
 import com.library.api.security.JwtUtil;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
-public class AuthService implements UserDetailsService {
+public class AuthService {
+
+    public static final String ROLE_USER = "USER";
+    public static final String ROLE_ADMIN = "ADMIN";
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -30,14 +32,14 @@ public class AuthService implements UserDetailsService {
         this.authenticationManager = authenticationManager;
     }
 
+    /** Public registration always creates a regular user, admins are created with {@link #createAdmin}. */
     public AuthResponse register(RegisterRequest request) {
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(request.getRole().toUpperCase());
-        userRepository.save(user);
-        String token = jwtUtil.generateToken(user);
-        return new AuthResponse(token, user.getUsername(), user.getRole());
+        User user = createUser(request.getUsername(), request.getPassword(), ROLE_USER);
+        return new AuthResponse(jwtUtil.generateToken(user), user.getUsername(), user.getRole());
+    }
+
+    public void createAdmin(String username, String password) {
+        createUser(username, password, ROLE_ADMIN);
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -46,13 +48,17 @@ public class AuthService implements UserDetailsService {
         );
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        String token = jwtUtil.generateToken(user);
-        return new AuthResponse(token, user.getUsername(), user.getRole());
+        return new AuthResponse(jwtUtil.generateToken(user), user.getUsername(), user.getRole());
     }
 
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+    private User createUser(String username, String password, String role) {
+        if (userRepository.findByUsername(username).isPresent()) {
+            throw new UsernameTakenException(username);
+        }
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setRole(role);
+        return userRepository.save(user);
     }
 }

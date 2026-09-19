@@ -4,6 +4,7 @@ import com.library.api.dto.AuthorResponse;
 import com.library.api.dto.BookRequest;
 import com.library.api.dto.BookResponse;
 import com.library.api.dto.PageResponse;
+import com.library.api.exception.BadRequestException;
 import com.library.api.exception.BookNotFoundException;
 import com.library.api.model.Book;
 import com.library.api.repository.BookRepository;
@@ -13,10 +14,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 @Service
 public class BookService {
+
+    private static final Set<String> SORTABLE_FIELDS = new TreeSet<>(Set.of("id", "title", "genre"));
 
     private final BookRepository repository;
     private final AuthorService authorService;
@@ -27,16 +31,15 @@ public class BookService {
     }
 
     public PageResponse<BookResponse> getAll(int page, int size, String sort) {
+        if (!SORTABLE_FIELDS.contains(sort)) {
+            throw new BadRequestException("Cannot sort by '" + sort + "', use one of " + SORTABLE_FIELDS);
+        }
         PageRequest pageable = PageRequest.of(page, size, Sort.by(sort));
         return PageResponse.from(repository.findAll(pageable).map(this::toResponse));
     }
 
     public BookResponse getById(Long id) {
         return toResponse(repository.findById(id).orElseThrow(() -> new BookNotFoundException(id)));
-    }
-
-    public List<BookResponse> getByAuthor(Long authorId) {
-        return repository.findByAuthorId(authorId).stream().map(this::toResponse).toList();
     }
 
     public PageResponse<BookResponse> search(String title, String genre, Long authorId, int page, int size) {

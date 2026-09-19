@@ -2,9 +2,15 @@ package com.library.api.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
 import java.util.List;
 
+// Soft delete like Book: rows stay so books that were removed with their author keep a valid reference.
 @Entity
+@SQLDelete(sql = "UPDATE author SET deleted = true WHERE id = ?")
+@SQLRestriction("deleted = false")
 public class Author {
 
     @Id
@@ -18,6 +24,8 @@ public class Author {
 
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL)
     private List<Book> books;
+
+    private boolean deleted = false;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

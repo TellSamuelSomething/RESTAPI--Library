@@ -5,6 +5,8 @@ import com.library.api.dto.BookResponse;
 import com.library.api.dto.PageResponse;
 import com.library.api.service.BookService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,8 +23,8 @@ public class BookController {
 
     @GetMapping
     public PageResponse<BookResponse> getAll(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
             @RequestParam(defaultValue = "title") String sort,
             @RequestParam(required = false) Long authorId) {
         if (authorId != null) return service.search(null, null, authorId, page, size);
@@ -39,8 +41,8 @@ public class BookController {
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String genre,
             @RequestParam(required = false) Long authorId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size) {
         return service.search(title, genre, authorId, page, size);
     }
 
